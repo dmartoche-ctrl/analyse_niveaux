@@ -1,0 +1,340 @@
+
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Niveaux Clés — Indices & Futures</title>
+  <style>
+    :root{
+      --bg:#0b1220; --card:#101a2e; --muted:#9fb0d0; --txt:#e8eefc;
+      --accent:#5eead4; --danger:#fb7185; --line:#20304f;
+    }
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      background:linear-gradient(180deg,#070b14, #0b1220 30%, #070b14);
+      color:var(--txt);}
+    header{padding:22px 16px; border-bottom:1px solid var(--line);}
+    h1{margin:0;font-size:18px; letter-spacing:.3px;}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px;}
+    .grid{display:grid; gap:12px; grid-template-columns: 360px 1fr;}
+    @media (max-width: 980px){ .grid{grid-template-columns: 1fr;} }
+    .card{background:rgba(16,26,46,.9); border:1px solid var(--line);
+      border-radius:14px; padding:14px; box-shadow:0 10px 40px rgba(0,0,0,.25);}
+    label{display:block; font-size:12px; color:var(--muted); margin:10px 0 6px;}
+    input, select, textarea{
+      width:100%; box-sizing:border-box; padding:10px 10px;
+      border-radius:10px; border:1px solid var(--line);
+      background:#0b1324; color:var(--txt);
+      outline:none;
+    }
+    textarea{min-height:70px; resize:vertical;}
+    .row{display:grid; gap:10px; grid-template-columns: 1fr 1fr;}
+    .btns{display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;}
+    button{
+      border:0; border-radius:12px; padding:10px 12px; cursor:pointer;
+      background:var(--accent); color:#042018; font-weight:700;
+    }
+    button.secondary{background:#1c2b48; color:var(--txt); border:1px solid var(--line);}
+    button.danger{background:var(--danger); color:#2a0610;}
+    .topbar{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+    .pill{padding:6px 10px; border:1px solid var(--line); border-radius:999px;
+      background:#0b1324; color:var(--muted); font-size:12px;}
+    table{width:100%; border-collapse:separate; border-spacing:0; overflow:hidden;}
+    th,td{padding:10px 8px; border-bottom:1px solid var(--line); vertical-align:top;}
+    th{font-size:12px; text-align:left; color:var(--muted); position:sticky; top:0; background:#0f1930;}
+    .stars{letter-spacing:1px;}
+    .tag{display:inline-block; padding:3px 8px; border-radius:999px;
+      border:1px solid var(--line); font-size:12px; color:var(--muted); margin-right:6px;}
+    .small{font-size:12px; color:var(--muted);}
+    .actions button{padding:6px 10px; border-radius:10px; font-weight:700;}
+    .actions button.secondary{padding:6px 10px;}
+  </style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>Niveaux Clés — Indices & Futures</h1>
+    <div class="small">Saisie, sauvegarde locale, export/import JSON (GitHub Pages friendly)</div>
+  </div>
+</header>
+
+<div class="wrap grid">
+  <section class="card">
+    <div class="topbar">
+      <span class="pill" id="countPill">0 niveau</span>
+      <span class="pill" id="marketPill">Marché: —</span>
+    </div>
+
+    <label>Marché</label>
+    <select id="market">
+      <option value="SPX">SPX</option>
+      <option value="ES">ES (E-mini S&P)</option>
+      <option value="NQ">NQ (Nasdaq)</option>
+      <option value="DAX">DAX</option>
+      <option value="CAC">CAC 40</option>
+      <option value="SMI">SMI</option>
+      <option value="GC">GC (Gold futures)</option>
+      <option value="XAUUSD">XAUUSD</option>
+      <option value="Autre">Autre</option>
+    </select>
+
+    <div class="row">
+      <div>
+        <label>Prix / Niveau</label>
+        <input id="price" type="number" step="0.01" placeholder="ex: 5235.25">
+      </div>
+      <div>
+        <label>Force (⭐ 1–5)</label>
+        <select id="strength">
+          <option value="1">1</option><option value="2">2</option><option value="3" selected>3</option>
+          <option value="4">4</option><option value="5">5</option>
+        </select>
+      </div>
+    </div>
+
+    <label>Type</label>
+    <select id="type">
+      <option>Gamma Flip</option>
+      <option>Call Wall</option>
+      <option>Put Wall</option>
+      <option>Gamma Wall</option>
+      <option>VWAP</option>
+      <option>POC</option>
+      <option>Value Area</option>
+      <option>Support</option>
+      <option>Résistance</option>
+      <option>Autre</option>
+    </select>
+
+    <label>Biais / Intention</label>
+    <select id="bias">
+      <option>Neutre</option>
+      <option>Plutôt Long</option>
+      <option>Plutôt Short</option>
+      <option>Breakout Long</option>
+      <option>Breakout Short</option>
+      <option>Fade / Rejet</option>
+    </select>
+
+    <label>Commentaire (plan, comportement attendu, erreurs à éviter)</label>
+    <textarea id="note" placeholder="Ex: Au-dessus GF → gamma+ → scalps/fades; sous GF → gamma- → breakouts."></textarea>
+
+    <div class="btns">
+      <button id="addBtn">Ajouter / Mettre à jour</button>
+      <button class="secondary" id="resetBtn" type="button">Réinitialiser form</button>
+      <button class="secondary" id="exportBtn" type="button">Exporter JSON</button>
+      <button class="secondary" id="importBtn" type="button">Importer JSON</button>
+      <input id="importFile" type="file" accept="application/json" style="display:none" />
+      <button class="danger" id="clearBtn" type="button">Vider ce marché</button>
+    </div>
+
+    <div class="small" style="margin-top:10px;">
+      Astuce : tu peux garder SPX/ES/GC séparés, tout est stocké “par marché”.
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="topbar">
+      <input id="filter" placeholder="Filtrer (type, biais, texte…)" />
+      <button class="secondary" id="sortBtn" type="button">Trier par prix</button>
+    </div>
+
+    <div style="max-height:70vh; overflow:auto; margin-top:10px; border-radius:12px; border:1px solid var(--line);">
+      <table>
+        <thead>
+          <tr>
+            <th>Prix</th>
+            <th>Détails</th>
+            <th>Plan / Notes</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<script>
+  const $ = (id)=>document.getElementById(id);
+
+  const keyForMarket = (m)=>`levels:v1:${m}`;
+  let editingId = null;
+  let sortAsc = true;
+
+  function loadLevels(market){
+    try{
+      return JSON.parse(localStorage.getItem(keyForMarket(market))||"[]");
+    }catch(e){ return []; }
+  }
+  function saveLevels(market, levels){
+    localStorage.setItem(keyForMarket(market), JSON.stringify(levels));
+  }
+  function stars(n){ return "★".repeat(n) + "☆".repeat(5-n); }
+
+  function render(){
+    const market = $("market").value;
+    $("marketPill").textContent = `Marché: ${market}`;
+
+    let levels = loadLevels(market);
+    const q = $("filter").value.trim().toLowerCase();
+
+    if(q){
+      levels = levels.filter(x =>
+        String(x.price).includes(q) ||
+        (x.type||"").toLowerCase().includes(q) ||
+        (x.bias||"").toLowerCase().includes(q) ||
+        (x.note||"").toLowerCase().includes(q)
+      );
+    }
+
+    $("countPill").textContent = `${levels.length} niveau${levels.length>1?"x":""}`;
+
+    const tbody = $("tbody");
+    tbody.innerHTML = "";
+
+    for(const item of levels){
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><b>${item.price}</b><div class="stars">${stars(item.strength)}</div></td>
+        <td>
+          <span class="tag">${item.type}</span>
+          <span class="tag">${item.bias}</span>
+          <div class="small">ID: ${item.id}</div>
+        </td>
+        <td>${(item.note||"").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll("\n","<br>")}</td>
+        <td class="actions">
+          <button class="secondary" data-edit="${item.id}">Éditer</button>
+          <button class="danger" data-del="${item.id}">Suppr.</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    }
+  }
+
+  function upsert(){
+    const market = $("market").value;
+    const price = parseFloat($("price").value);
+    if(!isFinite(price)) { alert("Entre un prix valide."); return; }
+
+    const item = {
+      id: editingId || crypto.randomUUID().slice(0,8),
+      price: +price.toFixed(4),
+      strength: parseInt($("strength").value,10),
+      type: $("type").value,
+      bias: $("bias").value,
+      note: $("note").value || ""
+    };
+
+    let levels = loadLevels(market);
+
+    const idx = levels.findIndex(x => x.id === item.id);
+    if(idx >= 0) levels[idx] = item;
+    else levels.push(item);
+
+    levels.sort((a,b)=> sortAsc ? a.price-b.price : b.price-a.price);
+    saveLevels(market, levels);
+
+    resetForm();
+    render();
+  }
+
+  function resetForm(){
+    editingId = null;
+    $("price").value = "";
+    $("strength").value = "3";
+    $("type").value = "Gamma Flip";
+    $("bias").value = "Neutre";
+    $("note").value = "";
+    $("addBtn").textContent = "Ajouter / Mettre à jour";
+  }
+
+  function sortByPrice(){
+    const market = $("market").value;
+    let levels = loadLevels(market);
+    sortAsc = !sortAsc;
+    levels.sort((a,b)=> sortAsc ? a.price-b.price : b.price-a.price);
+    saveLevels(market, levels);
+    render();
+  }
+
+  function del(id){
+    const market = $("market").value;
+    let levels = loadLevels(market);
+    levels = levels.filter(x => x.id !== id);
+    saveLevels(market, levels);
+    render();
+  }
+
+  function edit(id){
+    const market = $("market").value;
+    const levels = loadLevels(market);
+    const item = levels.find(x => x.id === id);
+    if(!item) return;
+    editingId = id;
+    $("price").value = item.price;
+    $("strength").value = String(item.strength);
+    $("type").value = item.type;
+    $("bias").value = item.bias;
+    $("note").value = item.note;
+    $("addBtn").textContent = "Mettre à jour";
+    window.scrollTo({top:0, behavior:"smooth"});
+  }
+
+  function clearMarket(){
+    const market = $("market").value;
+    if(confirm(`Vider tous les niveaux pour ${market} ?`)){
+      saveLevels(market, []);
+      render();
+    }
+  }
+
+  function exportJSON(){
+    const market = $("market").value;
+    const levels = loadLevels(market);
+    const blob = new Blob([JSON.stringify({market, levels, version:"v1"}, null, 2)], {type:"application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `niveaux_${market}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function importJSON(file){
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      try{
+        const data = JSON.parse(reader.result);
+        if(!data || !Array.isArray(data.levels)) throw new Error("Format invalide.");
+        const market = $("market").value;
+        // Import dans le marché courant
+        saveLevels(market, data.levels);
+        render();
+      }catch(e){ alert("Import impossible: " + e.message); }
+    };
+    reader.readAsText(file);
+  }
+
+  // Events
+  $("addBtn").addEventListener("click", upsert);
+  $("resetBtn").addEventListener("click", resetForm);
+  $("market").addEventListener("change", ()=>{ resetForm(); render(); });
+  $("filter").addEventListener("input", render);
+  $("sortBtn").addEventListener("click", sortByPrice);
+  $("clearBtn").addEventListener("click", clearMarket);
+  $("exportBtn").addEventListener("click", exportJSON);
+  $("importBtn").addEventListener("click", ()=>$("importFile").click());
+  $("importFile").addEventListener("change", (e)=>{ if(e.target.files[0]) importJSON(e.target.files[0]); });
+
+  $("tbody").addEventListener("click", (e)=>{
+    const btn = e.target.closest("button");
+    if(!btn) return;
+    if(btn.dataset.del) del(btn.dataset.del);
+    if(btn.dataset.edit) edit(btn.dataset.edit);
+  });
+
+  // Init
+  render();
+</script>
+</body>
+</html>
