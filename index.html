@@ -1,0 +1,633 @@
+
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Niveaux clés – ES / NQ / GC</title>
+
+<style>
+:root{
+  --bg:#0b1220; --card:#101a2e; --txt:#e8eefc;
+  --muted:#9fb0d0; --line:#20304f;
+  --accent:#5eead4;
+  --green:#22c55e;
+  --red:#ef4444;
+  --orange:#f59e0b;
+  --star:#facc15; /* jaune */
+}
+body{
+  margin:0; font-family:system-ui,Segoe UI,Roboto,Arial;
+  background:#070b14; color:var(--txt);
+}
+header{padding:16px;border-bottom:1px solid var(--line)}
+.wrap{max-width:1200px;margin:auto;padding:16px}
+.card{
+  background:var(--card); border:1px solid var(--line);
+  border-radius:14px; padding:14px; margin-bottom:14px;
+}
+.grid{display:grid;grid-template-columns:380px 1fr;gap:14px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+
+label{font-size:12px;color:var(--muted);display:block;margin-top:8px}
+input,select,textarea{
+  width:100%;padding:8px;border-radius:8px;
+  border:1px solid var(--line);
+  background:#0b1324;color:var(--txt)
+}
+textarea{min-height:70px}
+button{
+  border:0;border-radius:10px;padding:8px 12px;
+  font-weight:600;cursor:pointer
+}
+.primary{background:var(--accent);color:#042018}
+.secondary{background:#1c2b48;color:var(--txt)}
+.small{font-size:12px;color:var(--muted)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.tab{
+  padding:6px 14px;border-radius:999px;
+  border:1px solid var(--line);
+  background:#0b1324;color:var(--muted);
+  cursor:pointer
+}
+.tab.active{
+  background:var(--accent);
+  color:#042018;
+  font-weight:700
+}
+
+table{width:100%;border-collapse:collapse}
+th,td{border-bottom:1px solid var(--line);padding:8px;font-size:13px;vertical-align:top}
+th{color:var(--muted);text-align:left}
+
+.tag{
+  border:1px solid var(--line);
+  border-radius:999px;
+  padding:2px 8px;
+  font-size:11px;
+  margin-right:6px;
+  display:inline-block;
+}
+
+/* ★ étoiles jaunes */
+.stars{color:var(--star); letter-spacing:1px; font-size:13px;}
+
+/* Icônes biais */
+.bias{
+  font-weight:700;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  margin-left:6px;
+}
+.bias.long{color:var(--green)}
+.bias.short{color:var(--red)}
+.bias.neutral{color:var(--orange)}
+.bias .icon{font-size:14px; line-height:1}
+
+/* Mise en évidence d'une ligne Gamma Flip (niveau) */
+tr.gfRow td{
+  background:rgba(94,234,212,0.07);
+}
+
+/* Plan */
+.planBox{
+  background:#0b1324;
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:12px;
+  white-space:pre-wrap;
+  font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+  font-size:12px;
+  color:#dbe7ff;
+}
+hr.sep{border:0;border-top:1px solid var(--line); margin:10px 0}
+</style>
+</head>
+
+<body>
+<header>
+  <h2 style="margin:0">Niveaux clés – ES / NQ / GC</h2>
+</header>
+
+<div class="wrap">
+  <!-- ONGLET MARCHÉS -->
+  <div class="tabs" id="tabs"></div>
+
+  <div class="grid">
+    <!-- COLONNE GAUCHE -->
+    <div>
+      <!-- FORMULAIRE NIVEAU -->
+      <div class="card">
+        <div class="row">
+          <div style="flex:1">
+            <label>Date (niveau)</label>
+            <input type="date" id="date">
+          </div>
+          <div style="flex:1">
+            <label>Force (1 à 5)</label>
+            <select id="strength">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3" selected>3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+            </select>
+          </div>
+        </div>
+
+        <label>Prix / Niveau</label>
+        <input type="number" step="0.01" id="price" placeholder="ex: 5235.25">
+
+        <label>Type</label>
+        <select id="type">
+          <option>Gamma Flip</option>
+          <option>Call Wall</option>
+          <option>Put Wall</option>
+          <option>VAL</option>
+          <option>VAH</option>
+          <option>POC</option>
+          <option>Support</option>
+          <option>Résistance</option>
+        </select>
+
+        <label>Biais</label>
+        <select id="bias">
+          <option>Neutre</option>
+          <option>Plutôt Long</option>
+          <option>Plutôt Short</option>
+        </select>
+
+        <label>Plan / Commentaire</label>
+        <textarea id="note" placeholder="Comportement attendu, exécution, erreurs à éviter…"></textarea>
+
+        <div class="row" style="margin-top:10px">
+          <button class="primary" onclick="saveLevel()">Ajouter / Mettre à jour</button>
+          <button class="secondary" onclick="resetForm()">Reset</button>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <button class="secondary" onclick="exportJSON()">Export (marché)</button>
+          <button class="secondary" onclick="importJSON()">Import (marché)</button>
+        </div>
+        <input type="file" id="fileInput" accept="application/json" hidden>
+
+        <div class="small" style="margin-top:10px">
+          Astuce : tes niveaux sont stockés par marché. Le “Plan de la séance” se base sur marché + date.
+        </div>
+      </div>
+
+      <!-- PLAN DE LA SÉANCE -->
+      <div class="card">
+        <div class="row" style="justify-content:space-between">
+          <div>
+            <div style="font-weight:800">Plan de la séance</div>
+            <div class="small">Marché + date (paramètres de séance inclus)</div>
+          </div>
+          <button class="secondary" onclick="copyPlan()">Copier</button>
+        </div>
+
+        <hr class="sep">
+
+        <div class="row">
+          <div style="flex:1">
+            <label>Date de séance (filtre)</label>
+            <input type="date" id="sessionDate">
+          </div>
+          <div style="flex:1">
+            <label>Affichage</label>
+            <select id="scope" onchange="renderAll()">
+              <option value="session">Seulement cette date</option>
+              <option value="all">Toutes les dates</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- NOUVEAU : paramètres de séance -->
+        <div class="row">
+          <div style="flex:1">
+            <label>Sentiment du jour</label>
+            <select id="sessionSentiment">
+              <option value="Haussier">Haussier</option>
+              <option value="Baissier">Baissier</option>
+              <option value="Neutre" selected>Neutre</option>
+            </select>
+          </div>
+          <div style="flex:1">
+            <label>Gamma Flip (séance)</label>
+            <input type="number" step="0.01" id="sessionGammaFlip" placeholder="ex: 5230.00">
+          </div>
+        </div>
+        <div class="small" style="margin-top:6px">
+          Si tu ne renseignes pas le Gamma Flip ici, Copilot tentera de le déduire d’un niveau de type “Gamma Flip” (le plus fort).
+        </div>
+
+        <label>Tri</label>
+        <select id="sortMode" onchange="renderAll()">
+          <option value="force_desc" selected>Force ↓ puis prix ↑</option>
+          <option value="price_asc">Prix ↑</option>
+          <option value="price_desc">Prix ↓</option>
+        </select>
+
+        <div style="margin-top:10px" class="planBox" id="planBox"></div>
+      </div>
+    </div>
+
+    <!-- COLONNE DROITE : TABLEAU -->
+    <div class="card">
+      <div class="row" style="justify-content:space-between; margin-bottom:8px">
+        <div>
+          <div style="font-weight:800">Niveaux</div>
+          <div class="small" id="metaLine"></div>
+        </div>
+        <div class="row">
+          <input id="filter" placeholder="Filtrer (type, prix, texte…)" oninput="renderAll()" style="width:260px">
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Prix</th>
+            <th>Force</th>
+            <th>Détails</th>
+            <th>Plan</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================= CONFIG ================= */
+const MARKETS = ["ES","NQ","GC"];
+let currentMarket = MARKETS[0];
+let editingId = null;
+
+/* ================= UTILS ================= */
+const $ = id => document.getElementById(id);
+const today = () => new Date().toISOString().slice(0,10);
+const storageKey = m => "levels_" + m;
+const sessionKey = m => "sessionSettings_" + m; // objet { "YYYY-MM-DD": { sentiment, gammaFlip } }
+const stars = n => "★".repeat(n) + "☆".repeat(5-n);
+
+function biasClass(b){
+  if((b||"").includes("Short")) return "short";
+  if((b||"").includes("Long")) return "long";
+  return "neutral";
+}
+function biasIcon(b){
+  if((b||"").includes("Short")) return "↘";
+  if((b||"").includes("Long")) return "↗";
+  return "~";
+}
+
+/* ================= STORAGE (LEVELS) ================= */
+function load(){ return JSON.parse(localStorage.getItem(storageKey(currentMarket)) || "[]"); }
+function save(data){ localStorage.setItem(storageKey(currentMarket), JSON.stringify(data)); }
+
+/* ================= STORAGE (SESSION SETTINGS) ================= */
+function loadSessionSettingsObj(){
+  return JSON.parse(localStorage.getItem(sessionKey(currentMarket)) || "{}");
+}
+function getSessionSettings(dateStr){
+  const obj = loadSessionSettingsObj();
+  return obj[dateStr] || { sentiment:"Neutre", gammaFlip:"" };
+}
+function setSessionSettings(dateStr, settings){
+  const obj = loadSessionSettingsObj();
+  obj[dateStr] = settings;
+  localStorage.setItem(sessionKey(currentMarket), JSON.stringify(obj));
+}
+function syncSessionInputsFromStorage(){
+  const d = $("sessionDate").value;
+  const s = getSessionSettings(d);
+  $("sessionSentiment").value = s.sentiment || "Neutre";
+  $("sessionGammaFlip").value = (s.gammaFlip ?? "");
+}
+function persistSessionInputsToStorage(){
+  const d = $("sessionDate").value;
+  const sentiment = $("sessionSentiment").value;
+  const gf = $("sessionGammaFlip").value;
+  setSessionSettings(d, { sentiment, gammaFlip: gf });
+}
+
+/* ================= TABS ================= */
+function renderTabs(){
+  $("tabs").innerHTML = "";
+  MARKETS.forEach(m=>{
+    const t = document.createElement("div");
+    t.className = "tab" + (m === currentMarket ? " active" : "");
+    t.textContent = m;
+    t.onclick = () => {
+      currentMarket = m;
+      editingId = null;
+      resetForm();
+      syncSessionInputsFromStorage();
+      renderAll();
+      renderTabs();
+    };
+    $("tabs").appendChild(t);
+  });
+}
+
+/* ================= SORT / FILTER ================= */
+function getFilteredData(){
+  const data = load();
+  const scope = $("scope").value;              // session | all
+  const session = $("sessionDate").value;
+  const q = ($("filter").value || "").trim().toLowerCase();
+
+  let out = data.slice();
+
+  if(scope === "session"){
+    out = out.filter(x => (x.date || "") === session);
+  }
+  if(q){
+    out = out.filter(x =>
+      String(x.price).includes(q) ||
+      (x.type||"").toLowerCase().includes(q) ||
+      (x.bias||"").toLowerCase().includes(q) ||
+      (x.note||"").toLowerCase().includes(q) ||
+      (x.date||"").toLowerCase().includes(q)
+    );
+  }
+
+  const mode = $("sortMode").value;
+  if(mode === "force_desc"){
+    out.sort((a,b) => (b.strength - a.strength) || (a.price - b.price));
+  } else if(mode === "price_asc"){
+    out.sort((a,b) => (a.price - b.price) || (b.strength - a.strength));
+  } else if(mode === "price_desc"){
+    out.sort((a,b) => (b.price - a.price) || (b.strength - a.strength));
+  }
+  return out;
+}
+
+/* ================= RENDER TABLE ================= */
+function renderTable(){
+  const data = getFilteredData();
+  $("tbody").innerHTML = "";
+
+  const scopeTxt = $("scope").value === "session" ? $("sessionDate").value : "toutes dates";
+  const sess = getSessionSettings($("sessionDate").value);
+  const gfTxt = (sess.gammaFlip && String(sess.gammaFlip).trim().length) ? sess.gammaFlip : "—";
+  $("metaLine").textContent =
+    `Marché: ${currentMarket} • Affichage: ${scopeTxt} • Niveaux: ${data.length} • Sentiment: ${sess.sentiment || "Neutre"} • GF: ${gfTxt}`;
+
+  data.forEach(l=>{
+    const tr = document.createElement("tr");
+    if(l.type === "Gamma Flip") tr.classList.add("gfRow");
+    tr.innerHTML = `
+      <td>${l.date || ""}</td>
+      <td><b>${l.price ?? ""}</b></td>
+      <td class="stars">${stars(l.strength || 0)}</td>
+      <td>
+        <span class="tag">${l.type || ""}</span>
+        <span class="bias ${biasClass(l.bias)}">
+          <span class="icon">${biasIcon(l.bias)}</span>${l.bias || ""}
+        </span>
+      </td>
+      <td>${(l.note || "").replaceAll("<","&lt;").replaceAll(">","&gt;")}</td>
+      <td class="row" style="gap:6px; justify-content:flex-end">
+        <button class="secondary" onclick="editLevel('${l.id}')">✏️</button>
+        <button class="secondary" onclick="deleteLevel('${l.id}')">🗑</button>
+      </td>
+    `;
+    $("tbody").appendChild(tr);
+  });
+}
+
+/* ================= PLAN DE LA SÉANCE ================= */
+function inferGammaFlip(levels){
+  // prend le Gamma Flip le plus fort si présent, sinon null
+  const gfs = levels.filter(x => x.type === "Gamma Flip" && Number.isFinite(x.price));
+  if(!gfs.length) return null;
+  gfs.sort((a,b) => (b.strength - a.strength) || (a.price - b.price));
+  return gfs[0].price;
+}
+
+function buildSessionPlan(){
+  const all = load();
+  const session = $("sessionDate").value;
+  const scope = $("scope").value;
+
+  const levels = (scope === "session")
+    ? all.filter(x => (x.date||"") === session)
+    : all.slice();
+
+  // Tri du plan = force desc puis prix asc
+  levels.sort((a,b) => (b.strength - a.strength) || (a.price - b.price));
+
+  const sess = getSessionSettings(session);
+  const sentiment = sess.sentiment || "Neutre";
+
+  // Gamma Flip de séance : champ manuel sinon inféré depuis niveaux GF
+  const manualGF = (sess.gammaFlip ?? "").toString().trim();
+  const inferredGF = inferGammaFlip(levels);
+  const gammaFlip = manualGF.length ? Number(manualGF) : inferredGF;
+
+  const gfLine = (gammaFlip !== null && Number.isFinite(gammaFlip))
+    ? String(gammaFlip)
+    : "—";
+
+  const majors = levels.filter(x => (x.strength||0) >= 4);
+  const mids = levels.filter(x => (x.strength||0) === 3);
+  const minors = levels.filter(x => (x.strength||0) <= 2);
+
+  function fmtLine(x){
+    const icon = biasIcon(x.bias);
+    const bias = x.bias || "Neutre";
+    const note = (x.note || "").trim();
+    const noteShort = note ? " — " + (note.length > 120 ? note.slice(0,120) + "…" : note) : "";
+    return `• ${x.price}  ${x.type}  ${stars(x.strength||0)}  ${icon} ${bias}${noteShort}`;
+  }
+
+  // Bloc "Régime" inspiré de ta règle gamma+ / gamma- [1](https://loop.cloud.microsoft/p/eyJ1IjoiaHR0cHM6Ly9pZ2dyb3Vwc2Euc2hhcmVwb2ludC5jb20vY29udGVudHN0b3JhZ2UvQ1NQXzU0ZWMyOGJhLTVjOTEtNGRlZS05ZjVlLTA0YzNmOTFiMWM0Nz9uYXY9Y3owbE1rWmpiMjUwWlc1MGMzUnZjbUZuWlNVeVJrTlRVQ1UxUmpVMFpXTXlPR0poSlRKRU5XTTVNU1V5UkRSa1pXVWxNa1E1WmpWbEpUSkVNRFJqTTJZNU1XSXhZelEzSm1ROVlpVXlNWFZwYW5OV1NrWmpOMnN5WmxoblZFUWxNa1JTYzJOU05GUm1Va2xMVFdOaFVrZHdVMk5hWmtkNWFYWnVZVFF6TW1wMlVqSjJSbFEwWmtaa1pucE5kekJNZHlabVBUQXhWRmhWUTFGVFN6SkRUazlZU3pWVVRWUlNRVXhJUVVsU1FVVlpSVlZOUzFVbVl6MGxNa1kifQ%3D%3D) (dans l'explication ci-dessous)
+  let regimeBlock = "Régime gamma (référence)\n- GF non renseigné → impossible d’inférer le régime.\n";
+  if(gammaFlip !== null && Number.isFinite(gammaFlip)){
+    regimeBlock =
+`Régime gamma (référence)
+- Gamma Flip: ${gammaFlip}
+- Au-dessus du GF → gamma + (plutôt range / fades / retours) 
+- En-dessous du GF → gamma - (plutôt directionnel / breakouts / pullbacks courts)
+
+`;
+  }
+
+  const header = (scope === "session")
+    ? `PLAN DE LA SÉANCE\nMarché: ${currentMarket}\nDate: ${session}\nSentiment du jour: ${sentiment}\nGamma Flip (séance): ${gfLine}\n`
+    : `PLAN GLOBAL\nMarché: ${currentMarket}\nPérimètre: toutes dates\nSentiment du jour (date sélectionnée): ${sentiment}\nGamma Flip (séance): ${gfLine}\n`;
+
+  const recap =
+`Résumé rapide
+- Total niveaux: ${levels.length}
+- Niveaux majeurs (★★★★☆ / ★★★★★): ${majors.length}
+- Intermédiaires (★★★☆☆): ${mids.length}
+- Secondaires (≤★★☆☆☆): ${minors.length}
+
+`;
+
+  const blocks = [];
+  blocks.push(regimeBlock);
+
+  if(majors.length){
+    blocks.push("Niveaux majeurs (★★★★☆ et ★★★★★)\n" + majors.map(fmtLine).join("\n") + "\n");
+  } else {
+    blocks.push("Niveaux majeurs (★★★★☆ et ★★★★★)\n—\n");
+  }
+
+  if(mids.length){
+    blocks.push("Niveaux intermédiaires (★★★☆☆)\n" + mids.map(fmtLine).join("\n") + "\n");
+  } else {
+    blocks.push("Niveaux intermédiaires (★★★☆☆)\n—\n");
+  }
+
+  if(minors.length){
+    blocks.push("Niveaux secondaires (★★☆☆☆ et ★☆☆☆☆)\n" + minors.map(fmtLine).join("\n") + "\n");
+  }
+
+  const checklist =
+`Checklist d’exécution (rappel)
+1) Sur un niveau majeur : attendre la réaction (rejet / absorption / cassure) avant d’appuyer.
+2) Sentiment Baissier : privilégier shorts sur rejets / retests, éviter le “catch bottom” sans signal.
+3) Sentiment Haussier : privilégier longs sur supports / retests, éviter de chasser après extension.
+4) Neutre : traiter comme range jusqu’à preuve de cassure propre.
+
+`;
+
+  const planText = header + "\n" + recap + blocks.join("\n") + "\n" + checklist;
+  $("planBox").textContent = planText;
+}
+
+function copyPlan(){
+  const txt = $("planBox").textContent || "";
+  navigator.clipboard.writeText(txt);
+}
+
+/* ================= CRUD ================= */
+function saveLevel(){
+  const data = load();
+
+  const p = Number($("price").value);
+  if(!Number.isFinite(p)){ alert("Entre un prix valide."); return; }
+
+  const obj = {
+    id: editingId || crypto.randomUUID().slice(0,8),
+    date: $("date").value || today(),
+    price: p,
+    strength: Number($("strength").value),
+    type: $("type").value,
+    bias: $("bias").value,
+    note: $("note").value || ""
+  };
+
+  const i = data.findIndex(x => x.id === obj.id);
+  if(i >= 0) data[i] = obj;
+  else data.push(obj);
+
+  save(data);
+  resetForm();
+  renderAll();
+}
+
+function editLevel(id){
+  const l = load().find(x => x.id === id);
+  if(!l) return;
+  editingId = id;
+  $("date").value = l.date || today();
+  $("price").value = l.price ?? "";
+  $("strength").value = String(l.strength || 3);
+  $("type").value = l.type || "Gamma Flip";
+  $("bias").value = l.bias || "Neutre";
+  $("note").value = l.note || "";
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+
+function deleteLevel(id){
+  const data = load().filter(x => x.id !== id);
+  save(data);
+  renderAll();
+}
+
+function resetForm(){
+  editingId = null;
+  $("date").value = today();
+  $("price").value = "";
+  $("strength").value = "3";
+  $("type").value = "Gamma Flip";
+  $("bias").value = "Neutre";
+  $("note").value = "";
+}
+
+/* ================= EXPORT / IMPORT ================= */
+function exportJSON(){
+  const blob = new Blob([JSON.stringify(load(), null, 2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `niveaux_${currentMarket}.json`;
+  a.click();
+}
+
+function importJSON(){
+  $("fileInput").click();
+  $("fileInput").onchange = e => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try{
+        const data = JSON.parse(r.result);
+        if(!Array.isArray(data)) throw new Error("Format invalide (attendu: tableau JSON)");
+        save(data);
+        renderAll();
+      } catch(err){
+        alert("Import impossible: " + err.message);
+      }
+    };
+    r.readAsText(file);
+  };
+}
+
+/* ================= GLOBAL RENDER ================= */
+function renderAll(){
+  renderTable();
+  buildSessionPlan();
+}
+
+/* ================= INIT ================= */
+(function init(){
+  $("sessionDate").value = today();
+  $("scope").value = "session";
+  $("sortMode").value = "force_desc";
+
+  // Charger paramètres séance existants
+  syncSessionInputsFromStorage();
+
+  // Sauvegarder automatiquement si tu changes sentiment / GF / date
+  $("sessionDate").addEventListener("change", () => {
+    syncSessionInputsFromStorage();
+    renderAll();
+  });
+  $("sessionSentiment").addEventListener("change", () => {
+    persistSessionInputsToStorage();
+    renderAll();
+  });
+  $("sessionGammaFlip").addEventListener("input", () => {
+    persistSessionInputsToStorage();
+    renderAll();
+  });
+
+  resetForm();
+  renderTabs();
+  renderAll();
+})();
+</script>
+</body>
+</html>
