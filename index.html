@@ -1,0 +1,221 @@
+
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Niveaux clés – Marchés</title>
+
+<style>
+:root{
+  --bg:#0b1220; --card:#101a2e; --txt:#e8eefc;
+  --muted:#9fb0d0; --line:#20304f; --accent:#5eead4; --danger:#fb7185;
+}
+body{
+  margin:0; font-family:system-ui,Segoe UI,Roboto,Arial;
+  background:#070b14; color:var(--txt);
+}
+header{padding:16px;border-bottom:1px solid var(--line)}
+.wrap{max-width:1200px;margin:auto;padding:16px}
+.card{
+  background:var(--card); border:1px solid var(--line);
+  border-radius:14px; padding:14px; margin-bottom:14px;
+}
+.grid{display:grid;grid-template-columns:380px 1fr;gap:14px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+
+label{font-size:12px;color:var(--muted);display:block;margin-top:8px}
+input,select,textarea{
+  width:100%;padding:8px;border-radius:8px;
+  border:1px solid var(--line);background:#0b1324;color:var(--txt)
+}
+textarea{min-height:70px}
+button{
+  border:0;border-radius:10px;padding:8px 12px;
+  font-weight:600;cursor:pointer
+}
+.secondary{background:#1c2b48;color:var(--txt)}
+.primary{background:var(--accent);color:#042018}
+.danger{background:var(--danger);color:#2a0610}
+
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.tab{
+  padding:6px 12px;border-radius:999px;border:1px solid var(--line);
+  background:#0b1324;color:var(--muted);cursor:pointer
+}
+.tab.active{background:var(--accent);color:#042018;font-weight:700}
+
+table{width:100%;border-collapse:collapse}
+th,td{border-bottom:1px solid var(--line);padding:8px;font-size:13px}
+th{color:var(--muted);text-align:left}
+.stars{font-size:12px}
+.tag{border:1px solid var(--line);border-radius:999px;padding:2px 8px;font-size:11px;margin-right:4px}
+.actions button{padding:4px 8px;font-size:12px}
+</style>
+</head>
+
+<body>
+<header>
+  <h2 style="margin:0">Niveaux clés – Indices & Futures</h2>
+</header>
+
+<div class="wrap">
+  <div class="tabs" id="tabs"></div>
+
+  <div class="grid">
+    <!-- FORMULAIRE -->
+    <div class="card">
+      <label>Date</label>
+      <input type="date" id="date">
+
+      <label>Prix / Niveau</label>
+      <input type="number" step="0.01" id="price">
+
+      <label>Force</label>
+      <select id="strength">
+        <option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option>
+      </select>
+
+      <label>Type</label>
+      <select id="type">
+        <option>Gamma Flip</option>
+        <option>Call Wall</option>
+        <option>Put Wall</option>
+        <option>Gamma Wall</option>
+        <option>Support</option>
+        <option>Résistance</option>
+      </select>
+
+      <label>Biais</label>
+      <select id="bias">
+        <option>Neutre</option>
+        <option>Plutôt Long</option>
+        <option>Plutôt Short</option>
+        <option>Breakout</option>
+        <option>Fade</option>
+      </select>
+
+      <label>Commentaire</label>
+      <textarea id="note"></textarea>
+
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="primary" onclick="saveLevel()">Ajouter / Mettre à jour</button>
+        <button class="secondary" onclick="resetForm()">Reset</button>
+        <button class="secondary" onclick="exportJSON()">Export</button>
+        <button class="secondary" onclick="importJSON()">Import</button>
+      </div>
+      <input type="file" id="fileInput" accept="application/json" hidden>
+    </div>
+
+    <!-- TABLEAU -->
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th><th>Prix</th><th>Détails</th><th>Plan</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const MARKETS = ["SPX","ES","NQ","DAX","CAC","SMI","GC","XAUUSD"];
+let currentMarket = MARKETS[0];
+let editingId = null;
+
+const $ = id => document.getElementById(id);
+const today = () => new Date().toISOString().slice(0,10);
+const key = m => "levels_"+m;
+
+function load(){ return JSON.parse(localStorage.getItem(key(currentMarket))||"[]"); }
+function save(d){ localStorage.setItem(key(currentMarket),JSON.stringify(d)); }
+
+function renderTabs(){
+  tabs.innerHTML="";
+  MARKETS.forEach(m=>{
+    const b=document.createElement("div");
+    b.className="tab"+(m===currentMarket?" active":"");
+    b.textContent=m;
+    b.onclick=()=>{currentMarket=m;resetForm();renderTabs();render();}
+    tabs.appendChild(b);
+  });
+}
+
+function render(){
+  const data=load();
+  tbody.innerHTML="";
+  data.forEach(l=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`
+      <td>${l.date}</td>
+      <td><b>${l.price}</b><div class="stars">${"★".repeat(l.strength)}</div></td>
+      <td><span class="tag">${l.type}</span><span class="tag">${l.bias}</span></td>
+      <td>${l.note||""}</td>
+      <td class="actions">
+        <button class="secondary" onclick="edit('${l.id}')">✏️</button>
+        <button class="danger" onclick="del('${l.id}')">🗑</button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function saveLevel(){
+  const data=load();
+  const obj={
+    id:editingId||crypto.randomUUID().slice(0,8),
+    date:date.value||today(),
+    price:+price.value,
+    strength:+strength.value,
+    type:type.value,
+    bias:bias.value,
+    note:note.value
+  };
+  const i=data.findIndex(x=>x.id===obj.id);
+  if(i>=0)data[i]=obj; else data.push(obj);
+  save(data); resetForm(); render();
+}
+
+function edit(id){
+  const l=load().find(x=>x.id===id);
+  editingId=id;
+  date.value=l.date; price.value=l.price;
+  strength.value=l.strength; type.value=l.type;
+  bias.value=l.bias; note.value=l.note;
+}
+
+function del(id){
+  save(load().filter(x=>x.id!==id)); render();
+}
+
+function resetForm(){
+  editingId=null;
+  date.value=today(); price.value="";
+  strength.value=3; type.value="Gamma Flip";
+  bias.value="Neutre"; note.value="";
+}
+
+function exportJSON(){
+  const blob=new Blob([JSON.stringify(load(),null,2)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=`niveaux_${currentMarket}.json`; a.click();
+}
+
+function importJSON(){
+  fileInput.click();
+  fileInput.onchange=e=>{
+    const r=new FileReader();
+    r.onload=()=>{save(JSON.parse(r.result));render()};
+    r.readAsText(e.target.files[0]);
+  };
+}
+
+resetForm();
+renderTabs();
+render();
+</script>
+</body>
+</html>
